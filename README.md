@@ -1,23 +1,31 @@
-# Anam healthcare intake assistant
+# Anam Dental Intake Agent
 
-A LiveKit Agents demo that guides patients through a medical intake form using voice and an Anam lip-synced avatar. The agent (Liv) collects information one field at a time and updates the form in real time via RPC to the frontend. The demo includes both a **Python** and a **TypeScript** backend; run whichever you prefer. The frontend works with either.
+A LiveKit Agents demo that autonomously handles patient intake for a dental practice using voice, an Anam lip-synced avatar, and computer vision. The agent (Liv) guides patients through ID scanning, insurance capture, appointment scheduling, and form completion — all via natural conversation. The demo includes both a **Python** and a **TypeScript** backend; the Python backend has the full feature set, while the TypeScript backend covers basic intake flow. The frontend works with either.
 
 ## Features
 
-- **Voice intake flow**: Liv asks for each form field in order (name, DOB, address, phone, emergency contact, medications, allergies, reason for visit)
-- **One question at a time**: Confirms each answer before moving to the next field
+- **Autonomous intake flow**: Liv walks patients through the entire check-in process hands-free
+- **ID card scanning**: Camera-based capture with Gemini Vision OCR to extract name, DOB, and address
+- **Insurance card scanning**: Camera-based capture to extract provider, member ID, group number, and policy holder
+- **Appointment scheduling**: In-memory schedule with available slots across multiple doctors; agent books directly
+- **Knowledge base**: Senso KB integration to recognize returning patients and personalize conversations
 - **Real-time form updates**: Agent updates the on-screen form as the user speaks via RPC
 - **Anam avatar**: Lip-synced video avatar powered by the Anam plugin
 - **Voice pipeline**: Deepgram STT, OpenAI LLM, and ElevenLabs TTS (via LiveKit Inference)
+- **Mock data fill**: Auto-populates remaining fields (emergency contact, medications, allergies) for demo purposes
 - **Form submission**: Final confirmation loop, then submit from the frontend
+
+> **Note**: The TypeScript backend (`agent-ts`) implements a simpler intake flow (voice-only form filling, no vision/scheduling/knowledge base). Use the Python backend (`agent-py`) for the full experience.
 
 ## Prerequisites
 
 - **For the Python backend**: Python 3.10+, uv
-- **For the TypeScript backend**: Node.js, pnpm
+- **For the TypeScript backend**: Node.js 22+, pnpm
 - **For the frontend**: Node.js, pnpm
-- LiveKit account
+- LiveKit Cloud account
 - Anam API key
+- Google Gemini API key (optional, for real card OCR — falls back to mock data without it)
+- Senso API key (optional, for persistent knowledge base — falls back to in-memory without it)
 
 ## Installation
 
@@ -49,31 +57,34 @@ A LiveKit Agents demo that guides patients through a medical intake form using v
    ```
 
 4. Set up environment for your chosen agent
-   - **Python**: In `agent-py`, copy `.env.example` to `.env.local` and add your LiveKit and Anam credentials.
-   - **TypeScript**: In `agent-ts`, copy `.env.example` to `.env.local` and add your LiveKit and Anam credentials.
+   - **Python**: In `agent-py`, copy `.env.example` to `.env.local` and add your credentials.
+   - **TypeScript**: In `agent-ts`, copy `.env.example` to `.env.local` and add your credentials.
 
-5. Set up environment for the frontend  
-   In `frontend`, copy `.env.example` to `.env.local`. Add the same LiveKit credentials and set `AGENT_NAME=Anam-Demo` so the frontend dispatches to the agent.
+5. Set up environment for the frontend
+   In `frontend`, copy `.env.example` to `.env.local`. Add the same LiveKit credentials and set `AGENT_NAME=Anam-Demo`.
 
 ## Configuration
 
-Enter your environment variables in the `.env.local` file:
+### Agent environment (`agent-py/.env.local` or `agent-ts/.env.local`)
 
 ```bash
 LIVEKIT_URL=wss://your-project.livekit.cloud
 LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
 ANAM_API_KEY=your_anam_api_key
+
+# Python backend only:
+GOOGLE_API_KEY=your_gemini_api_key     # Optional — enables real card OCR
+SENSO_API_KEY=your_senso_api_key       # Optional — enables persistent knowledge base
+ANAM_AVATAR_ID=your_avatar_id          # Optional — defaults to Anam's default avatar
 ```
 
-Get your Anam API key from the [Anam dashboard](https://lab.anam.ai/api-keys). You can get your LiveKit environment variables from the [LiveKit dashboard](https://cloud.livekit.io/) or load them from the [LiveKit CLI](https://docs.livekit.io/home/cli/cli-setup):
+Get your Anam API key from the [Anam dashboard](https://lab.anam.ai/api-keys). Get your LiveKit credentials from [LiveKit Cloud](https://cloud.livekit.io/) or the CLI:
 
 ```bash
 lk cloud auth
 lk app env -w -d .env.local
 ```
-
-Run that from either `agent-py` or `agent-ts` depending on which backend you use.
 
 ### Frontend (`frontend/.env.local`)
 
@@ -82,9 +93,10 @@ LIVEKIT_API_KEY=your_livekit_api_key
 LIVEKIT_API_SECRET=your_livekit_api_secret
 LIVEKIT_URL=wss://your-project.livekit.cloud
 AGENT_NAME=Anam-Demo
+GOOGLE_API_KEY=your_gemini_api_key     # Optional — enables frontend-side card extraction
 ```
 
-Use the same LiveKit values as the agent. `AGENT_NAME=Anam-Demo` matches both backends so the frontend connects to whichever agent you run.
+Use the same LiveKit values as the agent. `AGENT_NAME=Anam-Demo` matches both backends.
 
 ## Usage
 
@@ -103,8 +115,6 @@ Run **one** backend (Python or TypeScript) and the frontend. Do not run both bac
    uv run python src/agent.py dev
    ```
 
-The agent registers with your LiveKit project as `Anam-Demo`.
-
 ### TypeScript backend
 
 1. One-time: download Silero VAD and the turn detector model
@@ -118,49 +128,65 @@ The agent registers with your LiveKit project as `Anam-Demo`.
    pnpm run dev
    ```
 
-The agent registers with your LiveKit project as `Anam-Demo`.
-
 ### Frontend
 
-1. Open a new terminal and go to the frontend:
-   ```bash
-   cd frontend
-   ```
+```bash
+cd frontend
+pnpm dev
+```
 
-2. Start the dev server:
-   ```bash
-   pnpm dev
-   ```
-
-3. In your browser, open:
-   ```
-   http://localhost:3000
-   ```
-
-4. Start a session and complete the intake form with Liv.
+Open [http://localhost:3000](http://localhost:3000) in your browser and start a session.
 
 ## Project structure
 
 ```
 anam/
-├── agent-py/              # Python backend (optional)
-│   ├── src/agent.py       # Intake agent and Anam avatar session
+├── agent-py/                  # Python backend (full features)
+│   ├── src/
+│   │   ├── agent.py           # Intake agent, Anam avatar, function tools
+│   │   ├── vision.py          # Card OCR via Gemini Vision (with mock fallback)
+│   │   ├── schedule.py        # Mock appointment schedule store
+│   │   └── senso.py           # Knowledge base client (Senso KB + in-memory)
 │   ├── pyproject.toml
 │   └── .env.local
-├── agent-ts/              # TypeScript backend (optional)
-│   ├── src/               # Agent entry and intake logic
+├── agent-ts/                  # TypeScript backend (basic intake)
+│   ├── src/
+│   │   ├── main.ts            # Agent entry point
+│   │   └── agent.ts           # Intake agent with update/get/submit tools
 │   ├── package.json
 │   └── .env.local
-└── frontend/
-    ├── app/               # Next.js app router
-    ├── components/app/    # Session, avatar, intake form UI
-    └── .env.local         # LiveKit credentials + AGENT_NAME
+└── frontend/                  # Next.js frontend
+    ├── app/
+    │   └── api/               # Card extraction + connection details endpoints
+    ├── components/app/
+    │   ├── intake-form.tsx     # Patient intake form UI
+    │   ├── card-capture.tsx    # Camera-based card capture
+    │   ├── insurance-upload.tsx # Insurance card upload
+    │   ├── schedule-panel.tsx  # Appointment schedule display
+    │   ├── knowledge-panel.tsx # Previous visit info display
+    │   ├── avatar-panel.tsx    # Anam avatar video rendering
+    │   └── session-view.tsx    # Main session layout
+    ├── app-config.ts           # Branding and feature flags
+    └── .env.local
 ```
 
-Both agents use the same agent name (`Anam-Demo`) and the same function tools (`update_field`, `get_form_state`, `submit_form`) to call RPCs on the frontend so the form stays in sync with the conversation.
+### Call flow (Python backend)
+
+1. Greet patient, ask for photo ID
+2. Capture ID via camera → Gemini Vision extracts name, DOB, address
+3. Check knowledge base for returning patient
+4. Ask reason for visit
+5. Capture insurance card (if available) → extract provider, member ID, group number
+6. Fill remaining fields with mock data
+7. Show available appointment slots, book selection
+8. Confirm all details, submit form
+9. Store call summary to knowledge base
 
 ## Built with
 
-- [LiveKit Agents](https://docs.livekit.io/agents/) - Agent framework
-- [Anam plugin](https://docs.livekit.io/agents/models/avatar/plugins/anam/) - Lip-synced avatar
-- [LiveKit Inference](https://docs.livekit.io/agents/models/) - STT, LLM, TTS models
+- [LiveKit Agents](https://docs.livekit.io/agents/) — Agent framework
+- [Anam plugin](https://docs.livekit.io/agents/models/avatar/plugins/anam/) — Lip-synced avatar
+- [LiveKit Inference](https://docs.livekit.io/agents/models/) — STT (Deepgram), LLM (OpenAI), TTS (ElevenLabs)
+- [Gemini Vision](https://ai.google.dev/) — Card OCR
+- [Senso KB](https://www.senso.ai/) — Knowledge base persistence
+- [Next.js](https://nextjs.org/) — Frontend framework
