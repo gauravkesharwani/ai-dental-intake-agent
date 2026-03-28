@@ -1,0 +1,32 @@
+# Virtual environments and caches
+.venv
+__pycache__
+*.egg-info
+.ruff_cache
+*.pyc
+
+# Node
+node_modules
+.next
+dist
+
+# Environment files (secrets)
+.env.local
+.env
+
+# IDE / OS
+.DS_Store
+.idea
+.vscode
+
+# Git
+.git
+.github
+
+# Build artifacts
+*.tgz
+uv.lock
+pnpm-lock.yaml
+
+# Test images
+test-*.png

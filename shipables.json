@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "keywords": [
+    "healthcare",
+    "intake",
+    "avatar",
+    "anam",
+    "livekit",
+    "voice-agent",
+    "conversational-ai",
+    "patient-intake",
+    "medical"
+  ],
+  "categories": [
+    "ai",
+    "healthcare",
+    "voice"
+  ],
+  "author": {
+    "name": "Gaurav Kesharwani",
+    "github": "gauravkesharwani"
+  },
+  "mcp": {
+    "servers": [
+      {
+        "name": "livekit-docs",
+        "package": "@livekit/docs-mcp",
+        "registry": "npm",
+        "transport": "http",
+        "url": "https://docs.livekit.io/mcp"
+      }
+    ]
+  }
+}
