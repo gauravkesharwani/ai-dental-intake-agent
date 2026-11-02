@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node init && vite build",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{ts,js}\"",
@@ -13,9 +13,9 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "dev": "pnpm run build && node dist/main.js dev",
+    "dev": "node init && pnpm run build && node dist/main.js dev",
     "download-files": "pnpm run build && node dist/main.js download-files",
-    "start": "node dist/main.js start"
+    "start": "node init && node dist/main.js start"
   },
   "engines": {
     "node": ">=22.0.0",
